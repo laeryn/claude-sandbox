@@ -30,15 +30,20 @@ claude-sandbox
 
 That's it. Your current directory becomes `/workspace` inside the container.
 
-```bash
-# Multiple instances work — each auto-picks the next available port
-cd ~/other-project
-claude-sandbox
+Multiple instances are supported — each auto-picks the next available port.
 
-# Other commands
-claude-sandbox login    # Re-authenticate
-claude-sandbox bash     # Shell into container
-claude-sandbox build    # Rebuild image (to update Claude Code version)
+> **Note:** `--dangerously-skip-permissions` is enabled by default. The container
+> provides isolation, but mounted volumes (your project dir, `~/.claude`) are
+> writable. A warning banner is shown on each startup.
+
+```bash
+claude-sandbox              # Start Claude Code in current directory
+claude-sandbox status       # Show all running sandbox instances
+claude-sandbox stop         # Stop all running instances
+claude-sandbox stop 3001    # Stop instance on a specific port
+claude-sandbox login        # Re-authenticate
+claude-sandbox bash         # Shell into container
+claude-sandbox build        # Rebuild image (to update Claude Code version)
 ```
 
 ## Chrome DevTools (browser MCP)
@@ -51,6 +56,15 @@ chrome-debug stop       # Stop Chrome + bridge
 The bridge handles macOS Chrome's localhost-only binding by proxying
 through a Node.js HTTP/WebSocket bridge that rewrites Host headers.
 Docker containers connect via `http://host.docker.internal:9222`.
+
+## Features
+
+- **Portable** — run from any directory, current folder becomes `/workspace`
+- **Multi-instance** — run multiple sandboxes simultaneously on different ports
+- **Shell history** — persists across container restarts in `~/.claude-sandbox-history/`
+- **Plugin support** — host Claude Code plugins are automatically available
+- **Chrome DevTools** — browser MCP works from inside the container
+- **Dev server access** — forwarded ports are accessible from your host machine
 
 ## Updating Claude Code
 

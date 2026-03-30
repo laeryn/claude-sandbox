@@ -6,11 +6,14 @@
 #   claude-sandbox login        # Log in to Claude
 #   claude-sandbox bash         # Shell inside the container
 #   claude-sandbox build        # Rebuild the image (after Dockerfile changes)
+#   claude-sandbox status       # Show running sandbox instances
+#   claude-sandbox stop [port]  # Stop a running instance
 
 set -e
 
 SANDBOX_DIR="$HOME/.claude-sandbox"
 IMAGE_NAME="claude-code-sandbox"
+HISTORY_DIR="$HOME/.claude-sandbox-history"
 
 # ---------- Build (only if image doesn't exist or explicitly requested) ----------
 if [ "${1:-}" = "build" ] || ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
@@ -29,6 +32,9 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 fi
 
+# ---------- Ensure shell history dir exists ----------
+mkdir -p "$HISTORY_DIR"
+
 COMMON_ARGS=(
     -it --rm
     -v "$(pwd):/workspace"
@@ -36,10 +42,14 @@ COMMON_ARGS=(
     -v "$HOME/.claude.json:/home/coder/.claude.json"
     -v "$HOME/.mcp-auth:/home/coder/.mcp-auth"
     -v "$HOME/.claude-mem:/home/coder/.claude-mem"
+    -v "$HISTORY_DIR:/home/coder/.shell-history"
     --add-host=host.docker.internal:host-gateway
     -e TERM=xterm-256color
     -e GIT_USER_NAME="${GIT_USER_NAME:-}"
     -e GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+    -e HISTFILE=/home/coder/.shell-history/.bash_history
+    -l "claude-sandbox=true"
+    -l "claude-sandbox.project=$(pwd)"
 )
 
 # ---------- Handle subcommands ----------
@@ -54,20 +64,63 @@ case "${1:-}" in
         docker run "${COMMON_ARGS[@]}" --entrypoint /bin/bash "$IMAGE_NAME"
         exit 0
         ;;
+    status)
+        FORMAT='table {{.ID}}\t{{.Label "claude-sandbox.project"}}\t{{.Ports}}\t{{.Status}}'
+        RUNNING=$(docker ps --filter "label=claude-sandbox=true" --format "$FORMAT" 2>/dev/null)
+        if [ -z "$RUNNING" ]; then
+            echo "No sandbox instances running."
+        else
+            echo "Running sandbox instances:"
+            echo ""
+            echo "CONTAINER   PROJECT                                    PORTS                    STATUS"
+            echo "$RUNNING"
+        fi
+        exit 0
+        ;;
+    stop)
+        if [ -n "${2:-}" ]; then
+            # Stop by port number
+            CID=$(docker ps --filter "label=claude-sandbox=true" --filter "publish=$2" -q 2>/dev/null)
+            if [ -n "$CID" ]; then
+                docker stop "$CID"
+                echo "Stopped sandbox on port $2."
+            else
+                echo "No sandbox found on port $2."
+            fi
+        else
+            # Stop all
+            CIDS=$(docker ps --filter "label=claude-sandbox=true" -q 2>/dev/null)
+            if [ -n "$CIDS" ]; then
+                echo "$CIDS" | xargs docker stop
+                echo "Stopped all sandbox instances."
+            else
+                echo "No sandbox instances running."
+            fi
+        fi
+        exit 0
+        ;;
 esac
 
 # ---------- Run ----------
-# Find an available port starting from 3000
+# Find an available port starting from configured default
 PORT="${DEV_PORT:-3000}"
 while lsof -i :$PORT >/dev/null 2>&1; do
     PORT=$((PORT + 1))
 done
 
 echo ""
-echo "Starting Claude Code sandbox..."
-echo "  Project: $(pwd)"
-echo "  Mounted at /workspace"
-echo "  Dev server port: http://localhost:$PORT"
+echo "┌─────────────────────────────────────────────────────────────┐"
+echo "│  Claude Code Sandbox                                        │"
+echo "├─────────────────────────────────────────────────────────────┤"
+echo "│  Project:    $(printf '%-46s' "$(basename "$(pwd)")") │"
+echo "│  Mounted at: /workspace                                     │"
+echo "│  Dev server: $(printf '%-46s' "http://localhost:$PORT") │"
+echo "├─────────────────────────────────────────────────────────────┤"
+echo "│  ⚠  --dangerously-skip-permissions is ON                    │"
+echo "│  Claude can execute any command without confirmation.       │"
+echo "│  The container provides isolation, but be aware that        │"
+echo "│  mounted volumes (project dir, ~/.claude) are writable.     │"
+echo "└─────────────────────────────────────────────────────────────┘"
 echo ""
 
 docker run "${COMMON_ARGS[@]}" -p "$PORT:3000" "$IMAGE_NAME" "$@"

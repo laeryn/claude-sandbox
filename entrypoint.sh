@@ -6,6 +6,15 @@ git config --global --add safe.directory '*'
 [ -n "$GIT_USER_NAME" ] && git config --global user.name "$GIT_USER_NAME"
 [ -n "$GIT_USER_EMAIL" ] && git config --global user.email "$GIT_USER_EMAIL"
 
+# Shell history persistence
+if [ -n "$HISTFILE" ]; then
+    touch "$HISTFILE"
+    echo "export HISTFILE=$HISTFILE" >> /home/coder/.bashrc
+    echo "export HISTSIZE=10000" >> /home/coder/.bashrc
+    echo "export HISTFILESIZE=20000" >> /home/coder/.bashrc
+    echo "shopt -s histappend" >> /home/coder/.bashrc
+fi
+
 # ---------- Fix plugin paths for container ----------
 KM_FILE="/home/coder/.claude/plugins/known_marketplaces.json"
 if [ -f "$KM_FILE" ] && grep -q "/Users/" "$KM_FILE" 2>/dev/null; then
