@@ -9,7 +9,15 @@
 #   chrome-debug stop     # Kill both
 
 SANDBOX_DIR="$HOME/.claude-sandbox"
-CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+# Load user config
+CONFIG_FILE="$SANDBOX_DIR/config.env"
+if [ -f "$CONFIG_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$CONFIG_FILE"
+fi
+
+CHROME="${CHROME_PATH:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 CHROME_PORT=9223
 BRIDGE_PORT=9222
 USER_DATA_DIR="/tmp/chrome-debug-profile"

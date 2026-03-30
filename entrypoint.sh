@@ -3,8 +3,8 @@ set -e
 
 # Git config
 git config --global --add safe.directory '*'
-git config --global user.name "Laeryn Evans"
-git config --global user.email "me@laeryn.com"
+[ -n "$GIT_USER_NAME" ] && git config --global user.name "$GIT_USER_NAME"
+[ -n "$GIT_USER_EMAIL" ] && git config --global user.email "$GIT_USER_EMAIL"
 
 # ---------- Fix plugin paths for container ----------
 KM_FILE="/home/coder/.claude/plugins/known_marketplaces.json"

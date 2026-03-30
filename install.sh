@@ -51,6 +51,56 @@ else
     echo '  export PATH="$HOME/.local/bin:$PATH"'
 fi
 
+# ---------- User config ----------
+CONFIG_FILE="$SANDBOX_DIR/config.env"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo ""
+    echo "--- Configuration ---"
+
+    # Git identity — fall back to system git config, then OS username
+    DEFAULT_NAME=$(git config --global user.name 2>/dev/null || echo "$(id -F 2>/dev/null || whoami)")
+    DEFAULT_EMAIL=$(git config --global user.email 2>/dev/null || echo "$(whoami)@$(hostname -s)")
+
+    read -p "Git name [$DEFAULT_NAME]: " GIT_NAME
+    GIT_NAME="${GIT_NAME:-$DEFAULT_NAME}"
+
+    read -p "Git email [$DEFAULT_EMAIL]: " GIT_EMAIL
+    GIT_EMAIL="${GIT_EMAIL:-$DEFAULT_EMAIL}"
+
+    # Chrome path — detect from common locations
+    DEFAULT_CHROME=""
+    for candidate in \
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+        "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary" \
+        "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+        "$(which google-chrome 2>/dev/null)" \
+        "$(which chromium-browser 2>/dev/null)" \
+        "$(which chromium 2>/dev/null)"; do
+        if [ -n "$candidate" ] && [ -f "$candidate" ]; then
+            DEFAULT_CHROME="$candidate"
+            break
+        fi
+    done
+    DEFAULT_CHROME="${DEFAULT_CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
+
+    read -p "Chrome path [$DEFAULT_CHROME]: " CHROME_PATH
+    CHROME_PATH="${CHROME_PATH:-$DEFAULT_CHROME}"
+
+    # Dev server port
+    read -p "Default dev server port [3000]: " DEV_PORT
+    DEV_PORT="${DEV_PORT:-3000}"
+
+    cat > "$CONFIG_FILE" << EOF
+GIT_USER_NAME="$GIT_NAME"
+GIT_USER_EMAIL="$GIT_EMAIL"
+CHROME_PATH="$CHROME_PATH"
+DEV_PORT=$DEV_PORT
+EOF
+    echo "Saved config to $CONFIG_FILE"
+else
+    echo "Config already exists at $CONFIG_FILE"
+fi
+
 # ---------- Build Docker image ----------
 echo ""
 read -p "Build the Docker image now? [Y/n] " BUILD
