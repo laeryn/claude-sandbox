@@ -1,0 +1,64 @@
+#!/bin/bash
+# Claude Code Sandbox — run from any directory
+#
+# Usage:
+#   claude-sandbox              # Start Claude Code in current directory
+#   claude-sandbox login        # Log in to Claude
+#   claude-sandbox bash         # Shell inside the container
+#   claude-sandbox build        # Rebuild the image (after Dockerfile changes)
+
+set -e
+
+SANDBOX_DIR="$HOME/.claude-sandbox"
+IMAGE_NAME="claude-code-sandbox"
+
+# ---------- Build (only if image doesn't exist or explicitly requested) ----------
+if [ "${1:-}" = "build" ] || ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+    echo "Building Claude Code sandbox image..."
+    docker build \
+        --build-arg USER_ID="$(id -u)" \
+        --build-arg GROUP_ID="$(id -g)" \
+        -t "$IMAGE_NAME" "$SANDBOX_DIR"
+    [ "${1:-}" = "build" ] && echo "Done." && exit 0
+fi
+
+COMMON_ARGS=(
+    -it --rm
+    -v "$(pwd):/workspace"
+    -v "$HOME/.claude:/home/coder/.claude"
+    -v "$HOME/.claude.json:/home/coder/.claude.json"
+    -v "$HOME/.mcp-auth:/home/coder/.mcp-auth"
+    -v "$HOME/.claude-mem:/home/coder/.claude-mem"
+    --add-host=host.docker.internal:host-gateway
+    -e TERM=xterm-256color
+)
+
+# ---------- Handle subcommands ----------
+case "${1:-}" in
+    login)
+        echo "Logging in to Claude..."
+        docker run "${COMMON_ARGS[@]}" --entrypoint claude "$IMAGE_NAME" login
+        exit 0
+        ;;
+    bash)
+        echo "Opening shell in container..."
+        docker run "${COMMON_ARGS[@]}" --entrypoint /bin/bash "$IMAGE_NAME"
+        exit 0
+        ;;
+esac
+
+# ---------- Run ----------
+# Find an available port starting from 3000
+PORT=3000
+while lsof -i :$PORT >/dev/null 2>&1; do
+    PORT=$((PORT + 1))
+done
+
+echo ""
+echo "Starting Claude Code sandbox..."
+echo "  Project: $(pwd)"
+echo "  Mounted at /workspace"
+echo "  Dev server port: http://localhost:$PORT"
+echo ""
+
+docker run "${COMMON_ARGS[@]}" -p "$PORT:3000" "$IMAGE_NAME" "$@"

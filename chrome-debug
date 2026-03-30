@@ -1,0 +1,75 @@
+#!/bin/bash
+# Launch Chrome with remote debugging accessible from Docker containers
+#
+# Chrome on macOS rejects non-localhost Host headers, so we run a Node.js
+# bridge that proxies HTTP + WebSocket and rewrites the Host header.
+#
+# Usage:
+#   chrome-debug          # Launch Chrome + bridge
+#   chrome-debug stop     # Kill both
+
+SANDBOX_DIR="$HOME/.claude-sandbox"
+CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME_PORT=9223
+BRIDGE_PORT=9222
+USER_DATA_DIR="/tmp/chrome-debug-profile"
+
+case "${1:-}" in
+    stop)
+        pkill -f "remote-debugging-port=$CHROME_PORT" 2>/dev/null && echo "Chrome stopped." || echo "No debug Chrome running."
+        pkill -f "chrome-bridge.mjs" 2>/dev/null && echo "Bridge stopped." || echo "No bridge running."
+        pkill -f "socat.*TCP-LISTEN:$BRIDGE_PORT" 2>/dev/null
+        exit 0
+        ;;
+esac
+
+# Clean up stale bridge if Chrome isn't running
+if lsof -i :$BRIDGE_PORT >/dev/null 2>&1 && ! lsof -i :$CHROME_PORT >/dev/null 2>&1; then
+    echo "Cleaning up stale bridge..."
+    pkill -f "chrome-bridge.mjs" 2>/dev/null
+    pkill -f "socat.*TCP-LISTEN:$BRIDGE_PORT" 2>/dev/null
+    sleep 0.5
+fi
+
+if lsof -i :$BRIDGE_PORT >/dev/null 2>&1; then
+    echo "Port $BRIDGE_PORT is already in use:"
+    lsof -i :$BRIDGE_PORT | head -3
+    exit 0
+fi
+
+echo "Launching Chrome with remote debugging..."
+
+"$CHROME" \
+    --remote-debugging-port=$CHROME_PORT \
+    --user-data-dir="$USER_DATA_DIR" \
+    --no-first-run \
+    --no-default-browser-check \
+    &>/dev/null &
+disown
+
+for i in {1..20}; do
+    if lsof -i :$CHROME_PORT >/dev/null 2>&1; then break; fi
+    sleep 0.5
+done
+
+if ! lsof -i :$CHROME_PORT >/dev/null 2>&1; then
+    echo "Error: Chrome failed to start"
+    exit 1
+fi
+
+# Start the Node.js bridge (rewrites Host header + WebSocket URLs)
+node "$SANDBOX_DIR/chrome-bridge.mjs" &>/dev/null &
+disown
+
+sleep 0.5
+if curl -s http://127.0.0.1:$BRIDGE_PORT/json/version >/dev/null 2>&1; then
+    echo "Chrome is ready."
+else
+    echo "Warning: Bridge may not be working. Check manually."
+fi
+
+echo "  Chrome on 127.0.0.1:$CHROME_PORT"
+echo "  Bridge on 0.0.0.0:$BRIDGE_PORT (rewrites Host header)"
+echo "  Docker: http://host.docker.internal:$BRIDGE_PORT"
+echo ""
+echo "  Stop with: chrome-debug stop"
