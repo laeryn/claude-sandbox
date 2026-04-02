@@ -47,7 +47,7 @@ COMMON_ARGS=(
     -e TERM=xterm-256color
     -e GIT_USER_NAME="${GIT_USER_NAME:-}"
     -e GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
-    -e HISTFILE=/home/coder/.shell-history/.bash_history
+    -e HISTFILE=/home/coder/.shell-history/.zsh_history
     -l "claude-sandbox=true"
     -l "claude-sandbox.project=$(pwd)"
 )
@@ -61,19 +61,20 @@ case "${1:-}" in
         ;;
     bash)
         echo "Opening shell in container..."
-        docker run "${COMMON_ARGS[@]}" --entrypoint /bin/bash "$IMAGE_NAME"
+        docker run "${COMMON_ARGS[@]}" --entrypoint /bin/zsh "$IMAGE_NAME"
         exit 0
         ;;
     status)
-        FORMAT='table {{.ID}}\t{{.Label "claude-sandbox.project"}}\t{{.Ports}}\t{{.Status}}'
-        RUNNING=$(docker ps --filter "label=claude-sandbox=true" --format "$FORMAT" 2>/dev/null)
+        RUNNING=$(docker ps --filter "label=claude-sandbox=true" --format '{{.ID}}\t{{.Label "claude-sandbox.project"}}\t{{.Ports}}\t{{.Status}}' 2>/dev/null)
         if [ -z "$RUNNING" ]; then
             echo "No sandbox instances running."
         else
             echo "Running sandbox instances:"
             echo ""
-            echo "CONTAINER   PROJECT                                    PORTS                    STATUS"
-            echo "$RUNNING"
+            printf "%-14s %-50s %-25s %s\n" "CONTAINER" "PROJECT" "PORTS" "STATUS"
+            echo "$RUNNING" | while IFS=$'\t' read -r id project ports status; do
+                printf "%-14s %-50s %-25s %s\n" "$id" "$project" "$ports" "$status"
+            done
         fi
         exit 0
         ;;

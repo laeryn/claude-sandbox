@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 set -e
 
 # Git config
@@ -9,10 +9,10 @@ git config --global --add safe.directory '*'
 # Shell history persistence
 if [ -n "$HISTFILE" ]; then
     touch "$HISTFILE"
-    echo "export HISTFILE=$HISTFILE" >> /home/coder/.bashrc
-    echo "export HISTSIZE=10000" >> /home/coder/.bashrc
-    echo "export HISTFILESIZE=20000" >> /home/coder/.bashrc
-    echo "shopt -s histappend" >> /home/coder/.bashrc
+    echo "export HISTFILE=$HISTFILE" >> /home/coder/.zshrc
+    echo "export HISTSIZE=10000" >> /home/coder/.zshrc
+    echo "export SAVEHIST=20000" >> /home/coder/.zshrc
+    echo "setopt APPEND_HISTORY" >> /home/coder/.zshrc
 fi
 
 # ---------- Fix plugin paths for container ----------
