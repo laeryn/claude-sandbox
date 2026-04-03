@@ -66,10 +66,12 @@ Docker containers connect via `http://host.docker.internal:9222`.
 - **Portable** — run from any directory, current folder becomes `/workspace`
 - **Multi-instance** — run multiple sandboxes simultaneously on different ports
 - **tmux session** — Claude runs inside tmux; detach/reattach without losing state
-- **neovim as default editor** — `Ctrl+G` in Claude opens nvim for prompt editing
+- **neovim as default editor** — `Ctrl+G` in Claude opens nvim for prompt editing; mouse enabled with `F2` toggle for terminal right-click access
+- **oh-my-zsh** — robbyrussell theme with git, z, history, and dirhistory plugins
 - **Fast paste** — zsh magic functions disabled for snappy clipboard paste
 - **zsh shell** — default shell with persistent history across container restarts
-- **Shell history** — persists across container restarts in `~/.claude-sandbox-history/`
+- **Shell history** — persists across container restarts with dedup and cross-session sharing
+- **UTF-8 locale** — full Unicode support with en_US.UTF-8 locale configured
 - **Plugin support** — host Claude Code plugins are automatically available
 - **Chrome DevTools** — browser MCP works from inside the container
 - **Dev server access** — forwarded ports are accessible from your host machine
@@ -91,8 +93,8 @@ claude-sandbox build
 | `claude-sandbox` | Main run script — portable, run from any directory |
 | `chrome-debug` | Launch Chrome with Docker-accessible remote debugging |
 | `chrome-bridge.mjs` | HTTP/WS proxy that rewrites Host headers for Chrome |
-| `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + bun + claude-code |
-| `entrypoint.sh` | Container startup: git config, shell tuning, plugin path fixes, MCP setup |
+| `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + oh-my-zsh + bun + claude-code |
+| `entrypoint.sh` | Container startup: git config, oh-my-zsh, neovim/tmux config, plugin path fixes, MCP setup |
 | `config.env` | Your local config (gitignored, created by install.sh) |
 
 ## Customization
