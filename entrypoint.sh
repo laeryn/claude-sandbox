@@ -86,8 +86,9 @@ bind l select-pane -R
 bind | split-window -h
 bind - split-window -v
 
-# Tokyo Night theme
-run-shell "~/.tmux/plugins/tokyo-night-tmux/tokyo-night.tmux"
+# Dracula theme
+set -g @dracula-plugins "git time"
+run-shell "~/.tmux/plugins/dracula/dracula.tmux"
 set -g default-terminal "tmux-256color"
 set -sg escape-time 10
 set -gq utf8 on

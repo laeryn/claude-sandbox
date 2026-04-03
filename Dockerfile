@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     neovim \
     tmux \
     zsh \
+    procps \
     locales \
     && sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
     && locale-gen \
@@ -24,10 +25,10 @@ ARG GROUP_ID=20
 RUN groupadd -g $GROUP_ID -o coder || true && \
     useradd -m -u $USER_ID -g $GROUP_ID -o -s /bin/zsh coder
 
-# Install oh-my-zsh, tokyo-night tmux theme, and bun for the coder user
+# Install oh-my-zsh, Dracula tmux theme, and bun for the coder user
 USER coder
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-RUN git clone https://github.com/janoamaral/tokyo-night-tmux ~/.tmux/plugins/tokyo-night-tmux
+RUN git clone https://github.com/dracula/tmux ~/.tmux/plugins/dracula
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/home/coder/.bun/bin:$PATH"
 
