@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     ca-certificates \
     vim \
+    neovim \
     tmux \
     zsh \
     && rm -rf /var/lib/apt/lists/*

@@ -30,6 +30,9 @@ claude-sandbox
 
 That's it. Your current directory becomes `/workspace` inside the container.
 
+Claude launches inside a **tmux session** — you can detach with `Ctrl+B, D` and
+reattach with `tmux attach -t claude`.
+
 Multiple instances are supported — each auto-picks the next available port.
 
 > **Note:** `--dangerously-skip-permissions` is enabled by default. The container
@@ -37,13 +40,14 @@ Multiple instances are supported — each auto-picks the next available port.
 > writable. A warning banner is shown on each startup.
 
 ```bash
-claude-sandbox              # Start Claude Code in current directory
-claude-sandbox status       # Show all running sandbox instances
-claude-sandbox stop         # Stop all running instances
-claude-sandbox stop 3001    # Stop instance on a specific port
-claude-sandbox login        # Re-authenticate
-claude-sandbox bash         # Shell into container
-claude-sandbox build        # Rebuild image (to update Claude Code version)
+claude-sandbox                  # Start Claude Code in current directory
+claude-sandbox --agent-teams    # Start with experimental Agent Teams enabled
+claude-sandbox status           # Show all running sandbox instances
+claude-sandbox stop             # Stop all running instances
+claude-sandbox stop 3001        # Stop instance on a specific port
+claude-sandbox login            # Re-authenticate
+claude-sandbox bash             # Shell into container (zsh)
+claude-sandbox build            # Rebuild image (to update Claude Code version)
 ```
 
 ## Chrome DevTools (browser MCP)
@@ -61,6 +65,10 @@ Docker containers connect via `http://host.docker.internal:9222`.
 
 - **Portable** — run from any directory, current folder becomes `/workspace`
 - **Multi-instance** — run multiple sandboxes simultaneously on different ports
+- **tmux session** — Claude runs inside tmux; detach/reattach without losing state
+- **neovim as default editor** — `Ctrl+G` in Claude opens nvim for prompt editing
+- **Fast paste** — zsh magic functions disabled for snappy clipboard paste
+- **zsh shell** — default shell with persistent history across container restarts
 - **Shell history** — persists across container restarts in `~/.claude-sandbox-history/`
 - **Plugin support** — host Claude Code plugins are automatically available
 - **Chrome DevTools** — browser MCP works from inside the container
@@ -83,14 +91,14 @@ claude-sandbox build
 | `claude-sandbox` | Main run script — portable, run from any directory |
 | `chrome-debug` | Launch Chrome with Docker-accessible remote debugging |
 | `chrome-bridge.mjs` | HTTP/WS proxy that rewrites Host headers for Chrome |
-| `Dockerfile` | Node 22 slim + git + vim + bun + claude-code |
-| `entrypoint.sh` | Container startup: git config, plugin path fixes, MCP setup |
+| `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + bun + claude-code |
+| `entrypoint.sh` | Container startup: git config, shell tuning, plugin path fixes, MCP setup |
 | `config.env` | Your local config (gitignored, created by install.sh) |
 
 ## Customization
 
 Edit `config.env` to change git identity, Chrome path, or default port.
 
-Edit `entrypoint.sh` to change default MCP servers or add container startup logic.
+Edit `entrypoint.sh` to change default MCP servers, editor, or container startup logic.
 
 Edit `Dockerfile` to add system packages or change the Node.js version.
