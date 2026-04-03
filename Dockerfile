@@ -30,7 +30,8 @@ USER coder
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 RUN git clone https://github.com/dracula/tmux ~/.tmux/plugins/dracula
 RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/home/coder/.bun/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/home/coder/.bun/bin:/home/coder/.local/bin:$PATH"
 
 # Switch back to root to install global npm packages
 USER root

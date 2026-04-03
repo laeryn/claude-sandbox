@@ -72,7 +72,7 @@ Docker containers connect via `http://host.docker.internal:9222`.
 - **zsh shell** — default shell with persistent history across container restarts
 - **Shell history** — persists across container restarts with dedup and cross-session sharing
 - **UTF-8 locale** — full Unicode support with en_US.UTF-8 locale configured
-- **Plugin support** — host Claude Code plugins are automatically available
+- **Plugin support** — host Claude Code plugins are automatically available; claude-mem search works with SQLite text fallback when Chroma is unavailable
 - **Chrome DevTools** — browser MCP works from inside the container
 - **Dev server access** — forwarded ports are accessible from your host machine
 
@@ -94,7 +94,7 @@ claude-sandbox build
 | `chrome-debug` | Launch Chrome with Docker-accessible remote debugging |
 | `chrome-bridge.mjs` | HTTP/WS proxy that rewrites Host headers for Chrome |
 | `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + oh-my-zsh + bun + claude-code |
-| `entrypoint.sh` | Container startup: git config, oh-my-zsh, neovim/tmux config, plugin path fixes, MCP setup |
+| `entrypoint.sh` | Container startup: git config, oh-my-zsh, neovim/tmux config, plugin path fixes, MCP setup, claude-mem Docker fixes |
 | `config.env` | Your local config (gitignored, created by install.sh) |
 
 ## Customization

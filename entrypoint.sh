@@ -41,6 +41,27 @@ export VISUAL=nvim
 export DISABLE_AUTOUPDATER=1
 export DISABLE_INSTALLATION_CHECKS=true
 
+# ---------- Fix claude-mem in Docker ----------
+# 1. SQLite file locking doesn't work on Docker-mounted volumes (macOS virtiofs).
+#    Move Chroma data to a container-local path so it can write properly.
+if [ -d /home/coder/.claude-mem ]; then
+    rm -rf /home/coder/.claude-mem/chroma
+    mkdir -p /tmp/claude-mem-chroma
+    ln -sf /tmp/claude-mem-chroma /home/coder/.claude-mem/chroma
+fi
+# 2. The default MCP→Worker timeout (3s) is too short for search queries inside
+#    a container. Raise to 30s so semantic search has time to respond.
+export CLAUDE_MEM_HEALTH_TIMEOUT_MS=30000
+# 3. claude-mem's Setup hook references setup.sh which doesn't ship with the
+#    plugin. Create a no-op stub so the hook doesn't error on startup.
+for _d in \
+    /home/coder/.claude/plugins/marketplaces/thedotmack/plugin/scripts \
+    /home/coder/.claude/plugins/cache/thedotmack/claude-mem/*/scripts; do
+    [ -d "$_d" ] && [ ! -f "$_d/setup.sh" ] && \
+        printf '#!/bin/bash\necho '\''{"continue":true,"suppressOutput":true}'\''\n' > "$_d/setup.sh" && \
+        chmod +x "$_d/setup.sh"
+done
+
 # ---------- Fix plugin paths for container ----------
 KM_FILE="/home/coder/.claude/plugins/known_marketplaces.json"
 if [ -f "$KM_FILE" ] && grep -q "/Users/" "$KM_FILE" 2>/dev/null; then
@@ -49,9 +70,10 @@ if [ -f "$KM_FILE" ] && grep -q "/Users/" "$KM_FILE" 2>/dev/null; then
     rm /tmp/km_fixed.json
 fi
 
-# ---------- Set up MCP servers ----------
-claude mcp remove chrome-devtools 2>/dev/null || true
-claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --browserUrl http://host.docker.internal:9222 2>/dev/null || true
+# ---------- Set up MCP servers (skip if already configured) ----------
+if ! claude mcp list 2>/dev/null | grep -q "chrome-devtools"; then
+    claude mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest --browserUrl http://host.docker.internal:9222 2>/dev/null || true
+fi
 
 if ! claude mcp list 2>/dev/null | grep -q "context7"; then
     claude mcp add context7 -- npx -y @upstash/context7-mcp@latest 2>/dev/null || true

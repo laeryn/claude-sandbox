@@ -35,6 +35,9 @@ fi
 # ---------- Ensure shell history dir exists ----------
 mkdir -p "$HISTORY_DIR"
 
+# Ensure auth files exist as files (not directories) before Docker mounts them
+[ ! -f "$HOME/.claude.json" ] && echo '{}' > "$HOME/.claude.json"
+
 COMMON_ARGS=(
     -it --rm
     -v "$(pwd):/workspace"
