@@ -57,30 +57,41 @@ if ! claude mcp list 2>/dev/null | grep -q "context7"; then
     claude mcp add context7 -- npx -y @upstash/context7-mcp@latest 2>/dev/null || true
 fi
 
-# Neovim config: mouse with F2 toggle for terminal right-click access
+# Neovim config: mouse off so Terminal.app handles selection and right-click natively
+# Press F2 in neovim to toggle mouse on if needed
 mkdir -p /home/coder/.config/nvim
 cat > /home/coder/.config/nvim/init.lua << 'NVIM'
-vim.o.mouse = "a"
+vim.o.mouse = ""
 
--- Press F2 to toggle mouse on/off (off = terminal handles right-click/selection)
 vim.keymap.set({"n", "i", "v"}, "<F2>", function()
   if vim.o.mouse == "a" then
     vim.o.mouse = ""
-    print("Mouse OFF - right-click menu available")
+    print("Mouse OFF - terminal handles selection")
   else
     vim.o.mouse = "a"
-    print("Mouse ON")
+    print("Mouse ON - neovim handles mouse")
   end
 end)
 NVIM
 
-# Tmux config: enable mouse scrollback and UTF-8
+# Tmux config: mouse off so Terminal.app handles selection and right-click natively
 cat > /home/coder/.tmux.conf << 'TMUX'
+set -g prefix C-a
+unbind C-b
+bind C-a send-prefix
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+bind | split-window -h
+bind - split-window -v
+
+# Tokyo Night theme
+run-shell "~/.tmux/plugins/tokyo-night-tmux/tokyo-night.tmux"
 set -g default-terminal "tmux-256color"
 set -sg escape-time 10
 set -gq utf8 on
-# Toggle mouse mode with Ctrl-b m (off by default so terminal selection works)
-set -g mouse off
+set -g mouse on
 bind m set -g mouse \; display "Mouse: #{?mouse,ON,OFF}"
 TMUX
 

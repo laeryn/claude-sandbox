@@ -65,8 +65,8 @@ Docker containers connect via `http://host.docker.internal:9222`.
 
 - **Portable** — run from any directory, current folder becomes `/workspace`
 - **Multi-instance** — run multiple sandboxes simultaneously on different ports
-- **tmux session** — Claude runs inside tmux; detach/reattach without losing state
-- **neovim as default editor** — `Ctrl+G` in Claude opens nvim for prompt editing; mouse enabled with `F2` toggle for terminal right-click access
+- **tmux session** — Claude runs inside tmux with Tokyo Night theme; `Ctrl-a` prefix, vim-style pane navigation (`h/j/k/l`), intuitive splits (`|` and `-`), mouse toggle (`m`)
+- **neovim as default editor** — `Ctrl+G` in Claude opens nvim; mouse off by default for native terminal copy/paste, `F2` to toggle mouse on
 - **oh-my-zsh** — robbyrussell theme with git, z, history, and dirhistory plugins
 - **Fast paste** — zsh magic functions disabled for snappy clipboard paste
 - **zsh shell** — default shell with persistent history across container restarts

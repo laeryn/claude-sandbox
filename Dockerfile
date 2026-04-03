@@ -24,9 +24,10 @@ ARG GROUP_ID=20
 RUN groupadd -g $GROUP_ID -o coder || true && \
     useradd -m -u $USER_ID -g $GROUP_ID -o -s /bin/zsh coder
 
-# Install oh-my-zsh and bun for the coder user
+# Install oh-my-zsh, tokyo-night tmux theme, and bun for the coder user
 USER coder
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+RUN git clone https://github.com/janoamaral/tokyo-night-tmux ~/.tmux/plugins/tokyo-night-tmux
 RUN curl -fsSL https://bun.sh/install | bash
 ENV PATH="/home/coder/.bun/bin:$PATH"
 
