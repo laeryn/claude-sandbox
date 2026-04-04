@@ -48,6 +48,7 @@ COMMON_ARGS=(
     -v "$HISTORY_DIR:/home/coder/.shell-history"
     --add-host=host.docker.internal:host-gateway
     -e TERM=xterm-256color
+    -e TZ="${TZ:-$(cat /etc/timezone 2>/dev/null || readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || echo UTC)}"
     -e GIT_USER_NAME="${GIT_USER_NAME:-}"
     -e GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
     -e HISTFILE=/home/coder/.shell-history/.zsh_history
