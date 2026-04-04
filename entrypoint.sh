@@ -98,9 +98,10 @@ NVIM
 
 # Tmux config: mouse off so Terminal.app handles selection and right-click natively
 cat > /home/coder/.tmux.conf << 'TMUX'
-set -g prefix C-a
+set -g prefix `
 unbind C-b
-bind C-a send-prefix
+bind ` send-prefix
+bind-key `` send-keys `
 bind h select-pane -L
 bind j select-pane -D
 bind k select-pane -U
@@ -112,8 +113,10 @@ bind - split-window -v
 set -g @dracula-plugins "git time"
 run-shell "~/.tmux/plugins/dracula/dracula.tmux"
 set -g default-terminal "tmux-256color"
+set -as terminal-features ',tmux-256color:clipboard'
 set -sg escape-time 10
 set -gq utf8 on
+set -g allow-passthrough on
 set -g mouse on
 bind m set -g mouse \; display "Mouse: #{?mouse,ON,OFF}"
 TMUX
