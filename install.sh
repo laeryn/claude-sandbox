@@ -19,6 +19,7 @@ fi
 chmod +x "$SANDBOX_DIR/claude-sandbox"
 chmod +x "$SANDBOX_DIR/chrome-debug"
 chmod +x "$SANDBOX_DIR/entrypoint.sh"
+chmod +x "$SANDBOX_DIR/settings.sh"
 
 # ---------- Create bin dir and symlinks ----------
 mkdir -p "$BIN_DIR"
@@ -83,18 +84,74 @@ if [ ! -f "$CONFIG_FILE" ]; then
     done
     DEFAULT_CHROME="${DEFAULT_CHROME:-/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}"
 
-    read -p "Chrome path [$DEFAULT_CHROME]: " CHROME_PATH
+    read -p "Chrome path on host machine [$DEFAULT_CHROME]: " CHROME_PATH
     CHROME_PATH="${CHROME_PATH:-$DEFAULT_CHROME}"
 
-    # Dev server port
-    read -p "Default dev server port [3000]: " DEV_PORT
-    DEV_PORT="${DEV_PORT:-3000}"
+    # Dev server port forwarding
+    echo ""
+    echo "The sandbox can forward a port so dev servers started inside the"
+    echo "container (by Claude or manually) are accessible on your host."
+    echo "Skip this if you run dev servers outside the sandbox."
+    read -p "Enable dev server port forwarding? [Y/n] " ENABLE_DEV_PORT_INPUT
+    if [ "${ENABLE_DEV_PORT_INPUT:-Y}" = "n" ] || [ "${ENABLE_DEV_PORT_INPUT:-Y}" = "N" ]; then
+        ENABLE_DEV_PORT=0
+        DEV_PORT=3000
+    else
+        ENABLE_DEV_PORT=1
+        read -p "Default dev server port [3000]: " DEV_PORT
+        DEV_PORT="${DEV_PORT:-3000}"
+    fi
+
+    # Shell preference
+    echo ""
+    echo "The container includes both bash and zsh (with oh-my-zsh)."
+    echo "Choose which shell to use inside the sandbox."
+    read -p "Shell inside container [zsh/bash] (default: zsh): " SHELL_PREF_INPUT
+    if [ "${SHELL_PREF_INPUT:-zsh}" = "bash" ]; then
+        CONTAINER_SHELL="bash"
+    else
+        CONTAINER_SHELL="zsh"
+    fi
+
+    # Tmux wrapper
+    echo ""
+    echo "Claude can run inside a tmux session, which gives you split panes,"
+    echo "scrollback, and a status bar. If you use agent teams, tmux is always used."
+    read -p "Open Claude in tmux by default? [Y/n] " USE_TMUX_INPUT
+    if [ "${USE_TMUX_INPUT:-Y}" = "n" ] || [ "${USE_TMUX_INPUT:-Y}" = "N" ]; then
+        USE_TMUX=0
+    else
+        USE_TMUX=1
+    fi
+
+    # Tmux config source (only if tmux is enabled)
+    TMUX_CONFIG=""
+    if [ "$USE_TMUX" = "1" ]; then
+        echo ""
+        echo "The sandbox includes a preconfigured tmux setup (Tokyo Night theme,"
+        echo "custom prefix key, status widgets). You can use that, or mount your"
+        echo "own tmux.conf instead."
+        read -p "Use sandbox tmux config? [Y/n] " TMUX_CONFIG_INPUT
+        if [ "${TMUX_CONFIG_INPUT:-Y}" = "n" ] || [ "${TMUX_CONFIG_INPUT:-Y}" = "N" ]; then
+            DEFAULT_TMUX_CONF="$HOME/.tmux.conf"
+            read -p "Path to your tmux.conf [$DEFAULT_TMUX_CONF]: " TMUX_CONFIG
+            TMUX_CONFIG="${TMUX_CONFIG:-$DEFAULT_TMUX_CONF}"
+            if [ ! -f "$TMUX_CONFIG" ]; then
+                echo "Warning: $TMUX_CONFIG not found. Falling back to sandbox config."
+                TMUX_CONFIG=""
+            fi
+        fi
+    fi
 
     cat > "$CONFIG_FILE" << EOF
 GIT_USER_NAME="$GIT_NAME"
 GIT_USER_EMAIL="$GIT_EMAIL"
 CHROME_PATH="$CHROME_PATH"
+ENABLE_DEV_PORT=$ENABLE_DEV_PORT
 DEV_PORT=$DEV_PORT
+CONTAINER_SHELL="$CONTAINER_SHELL"
+USE_TMUX=$USE_TMUX
+TMUX_CONFIG="$TMUX_CONFIG"
 EOF
     echo "Saved config to $CONFIG_FILE"
 else
@@ -110,6 +167,7 @@ fi
 
 echo ""
 echo "Done! Usage:"
-echo "  claude-sandbox        # Run Claude Code in any project dir"
-echo "  chrome-debug          # Start Chrome for browser MCP"
-echo "  chrome-debug stop     # Stop Chrome"
+echo "  claude-sandbox            # Run Claude Code in any project dir"
+echo "  claude-sandbox settings   # Edit sandbox configuration"
+echo "  chrome-debug              # Start Chrome for browser MCP"
+echo "  chrome-debug stop         # Stop Chrome"

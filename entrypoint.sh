@@ -1,13 +1,17 @@
-#!/bin/zsh
+#!/bin/bash
 set -e
+
+SHELL_CHOICE="${CONTAINER_SHELL:-zsh}"
 
 # Git config
 git config --global --add safe.directory '*'
 [ -n "$GIT_USER_NAME" ] && git config --global user.name "$GIT_USER_NAME"
 [ -n "$GIT_USER_EMAIL" ] && git config --global user.email "$GIT_USER_EMAIL"
 
-# Oh-my-zsh config (written fresh each start to stay idempotent)
-cat > /home/coder/.zshrc << 'ZSHRC'
+# Shell config
+if [ "$SHELL_CHOICE" = "zsh" ]; then
+    # Oh-my-zsh config (written fresh each start to stay idempotent)
+    cat > /home/coder/.zshrc << 'ZSHRC'
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 DISABLE_AUTO_UPDATE="true"
@@ -27,10 +31,33 @@ setopt HIST_IGNORE_DUPS
 setopt SHARE_HISTORY
 ZSHRC
 
-# Shell history persistence (mount a file to keep history across restarts)
-if [ -n "$HISTFILE" ]; then
-    touch "$HISTFILE"
-    echo "export HISTFILE=$HISTFILE" >> /home/coder/.zshrc
+    # Shell history persistence
+    if [ -n "$HISTFILE" ]; then
+        touch "$HISTFILE"
+        echo "export HISTFILE=$HISTFILE" >> /home/coder/.zshrc
+    fi
+else
+    # Bash config
+    cat > /home/coder/.bashrc << 'BASHRC'
+# Editor
+export EDITOR=nvim
+export VISUAL=nvim
+
+# History
+export HISTSIZE=10000
+export HISTFILESIZE=20000
+export HISTCONTROL=ignoredups:erasedups
+shopt -s histappend
+
+# Prompt
+PS1='\[\033[01;32m\]\u@sandbox\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+BASHRC
+
+    # Shell history persistence
+    if [ -n "$HISTFILE" ]; then
+        touch "$HISTFILE"
+        echo "export HISTFILE=$HISTFILE" >> /home/coder/.bashrc
+    fi
 fi
 
 # Export editor vars for the current process too (so Claude Code sees them)
@@ -103,5 +130,9 @@ elif [ -f /home/coder/.claude-sandbox/tmux.conf ]; then
     cp /home/coder/.claude-sandbox/tmux.conf /home/coder/.tmux.conf
 fi
 
-tmux new-session -s claude "claude --dangerously-skip-permissions $*"
-exec zsh
+if [ "${USE_TMUX:-1}" = "1" ]; then
+    tmux new-session -s claude "claude --dangerously-skip-permissions $*"
+    exec "$SHELL_CHOICE"
+else
+    exec claude --dangerously-skip-permissions "$@"
+fi

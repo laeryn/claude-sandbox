@@ -8,12 +8,69 @@
 #   claude-sandbox build        # Rebuild the image (after Dockerfile changes)
 #   claude-sandbox status       # Show running sandbox instances
 #   claude-sandbox stop [port]  # Stop a running instance
+#   claude-sandbox settings     # Edit sandbox configuration
 
 set -e
 
 SANDBOX_DIR="$HOME/.claude-sandbox"
 IMAGE_NAME="claude-code-sandbox"
 HISTORY_DIR="$HOME/.claude-sandbox-history"
+
+# ---------- Help ----------
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ] || [ "${1:-}" = "help" ]; then
+    cat << 'HELP'
+Claude Code Sandbox — run Claude Code in an isolated Docker container
+
+Usage: claude-sandbox [command] [options]
+
+Commands:
+  (none)              Start Claude Code in the current directory.
+                      Mounts the current dir to /workspace inside the container.
+                      Optionally wraps Claude in a tmux session (see settings).
+
+  login               Authenticate with Claude. Run this once before first use.
+
+  shell, bash         Open an interactive shell inside the container without
+                      starting Claude. Uses your configured shell (zsh or bash).
+
+  build               Rebuild the Docker image. Run this after pulling updates
+                      or changing the Dockerfile.
+
+  status              List all running sandbox container instances with their
+                      project directories, ports, and uptime.
+
+  stop [port]         Stop sandbox instances. Pass a port number to stop a
+                      specific instance, or omit to stop all running instances.
+
+  settings            Interactively edit sandbox configuration (git identity,
+                      shell, tmux, dev port, Chrome path). Changes are saved
+                      to ~/.claude-sandbox/config.env.
+
+  --help, -h, help    Show this help message.
+
+Environment variables:
+  AGENT_TEAMS=1       Enable experimental agent teams mode. Forces tmux on.
+                      Example: AGENT_TEAMS=1 claude-sandbox
+
+Related commands:
+  chrome-debug        Launch Chrome with remote debugging for the browser MCP
+                      server. Chrome is proxied through a bridge so Docker
+                      containers can connect via host.docker.internal:9222.
+
+  chrome-debug stop   Stop the debug Chrome instance and its bridge proxy.
+
+Configuration:
+  ~/.claude-sandbox/config.env    All settings (edit via 'claude-sandbox settings')
+  ~/.claude-sandbox/tmux.conf     Default tmux config used inside the container
+
+Examples:
+  claude-sandbox                  # Start Claude in current project
+  claude-sandbox shell            # Poke around inside the container
+  claude-sandbox settings         # Change shell, tmux, git config, etc.
+  AGENT_TEAMS=1 claude-sandbox    # Start with agent teams enabled
+HELP
+    exit 0
+fi
 
 # ---------- Build (only if image doesn't exist or explicitly requested) ----------
 if [ "${1:-}" = "build" ] || ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
@@ -23,6 +80,11 @@ if [ "${1:-}" = "build" ] || ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&
         --build-arg GROUP_ID="$(id -g)" \
         -t "$IMAGE_NAME" "$SANDBOX_DIR"
     [ "${1:-}" = "build" ] && echo "Done." && exit 0
+fi
+
+# ---------- Settings (runs on host, not in container) ----------
+if [ "${1:-}" = "settings" ]; then
+    exec bash "$SANDBOX_DIR/settings.sh"
 fi
 
 # ---------- Load user config ----------
@@ -57,8 +119,19 @@ COMMON_ARGS=(
     -l "claude-sandbox.project=$(pwd)"
 )
 
+# Shell preference
+COMMON_ARGS+=(-e CONTAINER_SHELL="${CONTAINER_SHELL:-zsh}")
+
+# Mount custom tmux config if specified
+if [ -n "${TMUX_CONFIG:-}" ] && [ -f "$TMUX_CONFIG" ]; then
+    COMMON_ARGS+=(-v "$TMUX_CONFIG:/home/coder/.tmux.conf.mount:ro")
+fi
+
 if [ "$AGENT_TEAMS" = "1" ]; then
     COMMON_ARGS+=(-e CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1)
+    COMMON_ARGS+=(-e USE_TMUX=1)
+else
+    COMMON_ARGS+=(-e USE_TMUX="${USE_TMUX:-1}")
 fi
 
 # ---------- Handle subcommands ----------
@@ -68,9 +141,9 @@ case "${1:-}" in
         docker run "${COMMON_ARGS[@]}" --entrypoint claude "$IMAGE_NAME" login
         exit 0
         ;;
-    bash)
+    bash|shell)
         echo "Opening shell in container..."
-        docker run "${COMMON_ARGS[@]}" --entrypoint /bin/zsh "$IMAGE_NAME"
+        docker run "${COMMON_ARGS[@]}" --entrypoint "/bin/${CONTAINER_SHELL:-zsh}" "$IMAGE_NAME"
         exit 0
         ;;
     status)
@@ -112,11 +185,16 @@ case "${1:-}" in
 esac
 
 # ---------- Run ----------
-# Find an available port starting from configured default
-PORT="${DEV_PORT:-3000}"
-while lsof -i :$PORT >/dev/null 2>&1; do
-    PORT=$((PORT + 1))
-done
+PORT_ARGS=()
+PORT_DISPLAY="disabled"
+if [ "${ENABLE_DEV_PORT:-1}" = "1" ]; then
+    PORT="${DEV_PORT:-3000}"
+    while lsof -i :$PORT >/dev/null 2>&1; do
+        PORT=$((PORT + 1))
+    done
+    PORT_ARGS=(-p "$PORT:3000")
+    PORT_DISPLAY="http://localhost:$PORT"
+fi
 
 echo ""
 echo "┌─────────────────────────────────────────────────────────────┐"
@@ -124,7 +202,7 @@ echo "│  Claude Code Sandbox                                        │"
 echo "├─────────────────────────────────────────────────────────────┤"
 echo "│  Project:    $(printf '%-46s' "$(basename "$(pwd)")") │"
 echo "│  Mounted at: /workspace                                     │"
-echo "│  Dev server: $(printf '%-46s' "http://localhost:$PORT") │"
+echo "│  Dev server: $(printf '%-46s' "$PORT_DISPLAY") │"
 echo "├─────────────────────────────────────────────────────────────┤"
 echo "│  ⚠  --dangerously-skip-permissions is ON                    │"
 echo "│  Claude can execute any command without confirmation.       │"
@@ -133,4 +211,4 @@ echo "│  mounted volumes (project dir, ~/.claude) are writable.     │"
 echo "└─────────────────────────────────────────────────────────────┘"
 echo ""
 
-docker run "${COMMON_ARGS[@]}" -p "$PORT:3000" "$IMAGE_NAME" "$@"
+docker run "${COMMON_ARGS[@]}" "${PORT_ARGS[@]}" "$IMAGE_NAME" "$@"
