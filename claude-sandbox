@@ -97,7 +97,8 @@ fi
 # ---------- Ensure shell history dir exists ----------
 mkdir -p "$HISTORY_DIR"
 
-# Ensure auth files exist as files (not directories) before Docker mounts them
+# Ensure mount targets exist before Docker creates them as root-owned
+mkdir -p "$HOME/.claude" "$HOME/.mcp-auth"
 [ ! -f "$HOME/.claude.json" ] && echo '{}' > "$HOME/.claude.json"
 
 COMMON_ARGS=(
@@ -106,7 +107,6 @@ COMMON_ARGS=(
     -v "$HOME/.claude:/home/coder/.claude"
     -v "$HOME/.claude.json:/home/coder/.claude.json"
     -v "$HOME/.mcp-auth:/home/coder/.mcp-auth"
-    -v "$HOME/.claude-mem:/home/coder/.claude-mem"
     -v "$HISTORY_DIR:/home/coder/.shell-history"
     -v "$SANDBOX_DIR:/home/coder/.claude-sandbox"
     --add-host=host.docker.internal:host-gateway
@@ -114,10 +114,16 @@ COMMON_ARGS=(
     -e TZ="${TZ:-$(cat /etc/timezone 2>/dev/null || readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || echo UTC)}"
     -e GIT_USER_NAME="${GIT_USER_NAME:-}"
     -e GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+    -e HOST_HOME="$HOME"
     -e HISTFILE=/home/coder/.shell-history/.zsh_history
     -l "claude-sandbox=true"
     -l "claude-sandbox.project=$(pwd)"
 )
+
+# Mount claude-mem data only if the plugin is installed
+if [ -d "$HOME/.claude-mem" ]; then
+    COMMON_ARGS+=(-v "$HOME/.claude-mem:/home/coder/.claude-mem")
+fi
 
 # Shell preference
 COMMON_ARGS+=(-e CONTAINER_SHELL="${CONTAINER_SHELL:-zsh}")

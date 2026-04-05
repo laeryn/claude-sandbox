@@ -90,11 +90,13 @@ for _d in \
 done
 
 # ---------- Fix plugin paths for container ----------
-KM_FILE="/home/coder/.claude/plugins/known_marketplaces.json"
-if [ -f "$KM_FILE" ] && grep -q "/Users/" "$KM_FILE" 2>/dev/null; then
-    sed 's|/Users/[^/]*/\.claude/|/home/coder/.claude/|g' "$KM_FILE" > /tmp/km_fixed.json
-    cp /tmp/km_fixed.json "$KM_FILE"
-    rm /tmp/km_fixed.json
+# Plugin configs store absolute host paths (e.g. /Users/john/.claude/...).
+# Instead of rewriting the files (which mutates the mounted host config),
+# create a symlink so host paths resolve inside the container.
+# /Users is pre-created in the Dockerfile so no root access is needed.
+if [ -n "$HOST_HOME" ] && [ "$HOST_HOME" != "/home/coder" ]; then
+    mkdir -p "$(dirname "$HOST_HOME")" 2>/dev/null && \
+        ln -sf /home/coder/.claude "$HOST_HOME/.claude" 2>/dev/null || true
 fi
 
 # ---------- Set up MCP servers (skip if already configured) ----------

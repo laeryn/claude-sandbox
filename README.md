@@ -2,6 +2,10 @@
 
 Portable Docker sandbox for running Claude Code in any project directory.
 
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) must be installed and running
+
 ## Setup
 
 ```bash
@@ -37,14 +41,16 @@ You can change any of these later with `claude-sandbox settings`.
 ## Usage
 
 ```bash
+claude-sandbox login              # Authenticate (required on first run)
 cd ~/any-project
 claude-sandbox
 ```
 
-That's it. Your current directory becomes `/workspace` inside the container.
+Your current directory becomes `/workspace` inside the container.
 
 If tmux is enabled (the default), Claude launches inside a **tmux session** —
-you can detach with `Ctrl+A, D` and reattach with `tmux attach -t claude`.
+you can detach with your tmux prefix + `D` and reattach with `tmux attach -t claude`.
+The sandbox default prefix is `Ctrl+A`.
 
 Multiple instances are supported — each auto-picks the next available port.
 

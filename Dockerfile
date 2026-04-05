@@ -35,7 +35,8 @@ ENV LC_ALL=en_US.UTF-8
 ARG USER_ID=501
 ARG GROUP_ID=20
 RUN groupadd -g $GROUP_ID -o coder || true && \
-    useradd -m -u $USER_ID -g $GROUP_ID -o -s /bin/zsh coder
+    useradd -m -u $USER_ID -g $GROUP_ID -o -s /bin/zsh coder && \
+    mkdir -p /Users && chown coder:$GROUP_ID /Users
 
 # Install oh-my-zsh, TPM + Tokyo Night tmux theme, and bun for the coder user
 USER coder
