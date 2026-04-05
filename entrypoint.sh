@@ -96,30 +96,12 @@ vim.keymap.set({"n", "i", "v"}, "<F2>", function()
 end)
 NVIM
 
-# Tmux config: mouse off so Terminal.app handles selection and right-click natively
-cat > /home/coder/.tmux.conf << 'TMUX'
-set -g prefix `
-unbind C-b
-bind ` send-prefix
-bind-key `` send-keys `
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-bind | split-window -h
-bind - split-window -v
-
-# Dracula theme
-set -g @dracula-plugins "git time"
-run-shell "~/.tmux/plugins/dracula/dracula.tmux"
-set -g default-terminal "tmux-256color"
-set -as terminal-features ',tmux-256color:clipboard'
-set -sg escape-time 10
-set -gq utf8 on
-set -g allow-passthrough on
-set -g mouse on
-bind m set -g mouse \; display "Mouse: #{?mouse,ON,OFF}"
-TMUX
+# Tmux config: use mounted file if available, otherwise copy from sandbox dir
+if [ -f /home/coder/.tmux.conf.mount ]; then
+    cp /home/coder/.tmux.conf.mount /home/coder/.tmux.conf
+elif [ -f /home/coder/.claude-sandbox/tmux.conf ]; then
+    cp /home/coder/.claude-sandbox/tmux.conf /home/coder/.tmux.conf
+fi
 
 tmux new-session -s claude "claude --dangerously-skip-permissions $*"
 exec zsh

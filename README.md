@@ -30,7 +30,7 @@ claude-sandbox
 
 That's it. Your current directory becomes `/workspace` inside the container.
 
-Claude launches inside a **tmux session** — you can detach with `Ctrl+B, D` and
+Claude launches inside a **tmux session** — you can detach with `Ctrl+A, D` and
 reattach with `tmux attach -t claude`.
 
 Multiple instances are supported — each auto-picks the next available port.
@@ -65,7 +65,7 @@ Docker containers connect via `http://host.docker.internal:9222`.
 
 - **Portable** — run from any directory, current folder becomes `/workspace`
 - **Multi-instance** — run multiple sandboxes simultaneously on different ports
-- **tmux session** — Claude runs inside tmux with Dracula theme (git + time widgets); backtick (`` ` ``) prefix, vim-style pane navigation (`h/j/k/l`), intuitive splits (`|` and `-`), mouse toggle (`m`); host timezone is passed through
+- **tmux session** — Claude runs inside tmux with [Tokyo Night](https://github.com/janoamaral/tokyo-night-tmux) theme (git + time widgets); `Ctrl+A` prefix, vim-style pane navigation (`h/j/k/l`), intuitive splits (`|` and `-`), mouse toggle (`m`); host timezone is passed through; config lives in `tmux.conf` for easy customization
 - **neovim as default editor** — `Ctrl+G` in Claude opens nvim; mouse off by default for native terminal copy/paste, `F2` to toggle mouse on
 - **oh-my-zsh** — robbyrussell theme with git, z, history, and dirhistory plugins
 - **Fast paste** — zsh magic functions disabled for snappy clipboard paste
@@ -93,13 +93,16 @@ claude-sandbox build
 | `claude-sandbox` | Main run script — portable, run from any directory |
 | `chrome-debug` | Launch Chrome with Docker-accessible remote debugging |
 | `chrome-bridge.mjs` | HTTP/WS proxy that rewrites Host headers for Chrome |
-| `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + oh-my-zsh + bun + claude-code |
-| `entrypoint.sh` | Container startup: git config, oh-my-zsh, neovim/tmux config, plugin path fixes, MCP setup, claude-mem Docker fixes |
+| `tmux.conf` | Tmux configuration: Tokyo Night theme, keybindings, plugins |
+| `Dockerfile` | Node 22 slim + git + vim + neovim + tmux + zsh + oh-my-zsh + FiraCode Nerd Font + bun + uv + claude-code |
+| `entrypoint.sh` | Container startup: git config, oh-my-zsh, neovim config, tmux config loading, plugin path fixes, MCP setup, claude-mem Docker fixes |
 | `config.env` | Your local config (gitignored, created by install.sh) |
 
 ## Customization
 
 Edit `config.env` to change git identity, Chrome path, or default port.
+
+Edit `tmux.conf` to change the tmux theme, keybindings, or plugins. Changes take effect on next container start (or rebuild with `claude-sandbox build` if you change Dockerfile-level dependencies).
 
 Edit `entrypoint.sh` to change default MCP servers, editor, or container startup logic.
 

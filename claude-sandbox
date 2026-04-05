@@ -46,6 +46,7 @@ COMMON_ARGS=(
     -v "$HOME/.mcp-auth:/home/coder/.mcp-auth"
     -v "$HOME/.claude-mem:/home/coder/.claude-mem"
     -v "$HISTORY_DIR:/home/coder/.shell-history"
+    -v "$SANDBOX_DIR:/home/coder/.claude-sandbox"
     --add-host=host.docker.internal:host-gateway
     -e TERM=xterm-256color
     -e TZ="${TZ:-$(cat /etc/timezone 2>/dev/null || readlink /etc/localtime 2>/dev/null | sed 's|.*/zoneinfo/||' || echo UTC)}"
